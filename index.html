@@ -1,8 +1,8 @@
+<!DOCTYPE html>
 <html>
 <head>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://unpkg.com/d3-dag@0.8.0"></script>
-  <!-- <script src="data.js"></script> -->
 
   <style>
     html {
@@ -28,7 +28,7 @@
     (async () => {
       // fetch data and render
       const resp = await fetch(
-        "https://api.airtable.com/v0/appoOuybfOmmEd4rF/People", 
+        "https://api.airtable.com/v0/appoOuybfOmmEd4rF/People?sort%5B0%5D%5Bfield%5D=Ordering&sort%5B0%5D%5Bdirection%5D=asc", 
         {
           headers: {
             Authorization: "Bearer keythMZv756Dup760" 
@@ -41,8 +41,8 @@
       const data = records.records.map(record => 
         ({
           id: record.id,
-          parentIds: record.fields.Parents ?? [],
-          childrenIds: record.fields.Children ?? [],
+          parents: (record.fields.Parents ?? []).sort(),
+          children: (record.fields.Children ?? []).sort(),
           name: record.fields.Name,
           image: (record.fields.Photo ?? [ {"url": "https://via.placeholder.com/150"} ])[0].url,
           birthDate: record.fields["Birth Date"],
@@ -51,11 +51,42 @@
         })
       );
 
-      const dag = d3.dagStratify()(data);
+      function uniq(a) {
+        let seen = new Set();
+        return a.filter(item => {
+          let k = item.id;
+          return seen.has(k) ? false : seen.add(k);
+        });
+      }
+
+      const allLinks = data.reduce((strat, record) => {
+        if (record.parents.length > 0) {
+          strat.push({
+            id: record.parents.join(),
+            parentIds: record.parents,
+            name: record.name,
+            image: record.image,
+            isUnion: true
+          })
+          strat.push({
+            id: record.id,
+            parentIds: [record.parents.join()],
+            name: record.name,
+            image: record.image
+          })
+        } else {
+          strat.push({ id: record.id, name: record.name, image: record.image })
+        }
+        return strat
+      }, []);
+
+      strat = uniq(allLinks)
+      
+      const dag = d3.dagStratify()(strat);
       const nodeRadius = 80;
       const layout = d3
-        .sugiyama() // base layout
-        .decross(d3.decrossOpt()) // minimize number of crossings
+        .sugiyama()
+        .decross(d3.decrossOpt())
         .nodeSize((node) => [(node ? 3.6 : 0.25) * nodeRadius, 3 * nodeRadius]); // set node size instead of constraining to fit
       const { width, height } = layout(dag);
 
@@ -63,75 +94,55 @@
       // This code only handles rendering
       // --------------------------------
 
-      function diagonal(s, d) {
+      function linkPath(s, d) {
         path = `
         M${s.x},${s.y}
         L${d.x},${s.y}
         L${d.x},${d.y}
         `
         return path
+
+
+          // path = `M ${s.x} ${s.y}
+          //   C ${(s.x + d.x) / 2} ${s.y},
+          //     ${(s.x + d.x) / 2} ${d.y},
+          //     ${d.x} ${d.y}`
+
+          // return path
+      }
+
+      function zoomed({ transform }) {
+        paths.attr("transform", transform);
+        d3.select(".nodes").attr("transform", transform);
       }
 
       const svgSelection = d3.select("svg");
-      svgSelection.attr("viewBox", [0, 0, width, height].join(" "));
-      const defs = svgSelection.append("defs"); // For gradients
-
-      const steps = dag.size();
-      const interp = d3.interpolateRainbow;
-      const colorMap = new Map();
-      for (const [i, node] of dag.idescendants().entries()) {
-        colorMap.set(node.data.id, interp(i / steps));
-      }
-
-      console.log(dag);
-
-      // How to draw edges
-      const line = d3
-        .line()
-        .curve(d3.curveCatmullRom)
-        .x((d) => d.x)
-        .y((d) => d.y);
-
-      console.log(dag.links())
-      // Plot edges
       svgSelection
+      .attr("viewBox", [0, 0, width, height]
+      .join(" "))
+      .call(d3.zoom().on("zoom", zoomed));
+      const defs = svgSelection.append("defs");
+
+      // Plot edges
+      const paths = svgSelection
         .append("g")
         .selectAll("path")
         .data(dag.links())
         .enter()
         .append("path")
         .attr("d", (d) => {     
-          return diagonal(d.source, d.target)
+          return linkPath(d.source, d.target)
         })
         .attr("fill", "none")
         .attr("stroke-width", 3)
-        .attr("stroke", ({ source, target }) => {
-          // encodeURIComponents for spaces, hope id doesn't have a `--` in it
-          const gradId = encodeURIComponent(`${source.data.id}--${target.data.id}`);
-          const grad = defs
-            .append("linearGradient")
-            .attr("id", gradId)
-            .attr("gradientUnits", "userSpaceOnUse")
-            .attr("x1", source.x)
-            .attr("x2", target.x)
-            .attr("y1", source.y)
-            .attr("y2", target.y);
-          grad
-            .append("stop")
-            .attr("offset", "0%")
-            .attr("stop-color", colorMap.get(source.data.id));
-          grad
-            .append("stop")
-            .attr("offset", "100%")
-            .attr("stop-color", colorMap.get(target.data.id));
-          return `url(#${gradId})`;
-        });
+        .attr("stroke", "black");
 
       // Plot node circles
 
       // Select nodes
       const nodes = svgSelection
         .append("g")
+        .attr("class", "nodes")
         .selectAll("g")
         .data(dag.descendants())
         .enter()
@@ -140,7 +151,7 @@
 
       nodes
         .append("circle")
-        .attr("r", nodeRadius)
+        .attr("r", (d) => d.data.isUnion ? 0 : nodeRadius)
         .attr("fill", (d) => {
           defs
             .append("pattern")
@@ -157,7 +168,6 @@
           return `url(#${d.data.id})`
         })
 
-
       // Add text to nodes
       // nodes
         // .append("text")
@@ -166,14 +176,7 @@
         // .attr("text-anchor", "middle")
         // .attr("alignment-baseline", "middle")
         // .attr("fill", "white");
-
-      // nodes
-      //   .append("image")
-      //   .attr("xlink:href", function(d) { 
-      //     return d.data.image; 
-      //   })
-      //   .attr("width", 50)
-      //   .attr("height", 50);
     })();
   </script>
 </body>
+</html>
