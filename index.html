@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://unpkg.com/d3-v6-tip@1.0.6/build/d3-v6-tip.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/bumbeishvili/d3-tip-for-v6@4/d3-tip.min.css">
-  <script src="https://unpkg.com/d3-dag@0.8.0"></script>
+  <script src="https://unpkg.com/d3-dag@0.7.0"></script>
 
   <style>
     html {
@@ -160,12 +162,6 @@
         .enter()
         .append("g")
         .attr("transform", ({ x, y }) => `translate(${x}, ${y})`)
-        .on('mouseover', (event, d) => {
-          if (!d.data.isUnion) {
-            tip.show(event, d);
-          }
-        })
-        .on('mouseout', tip.hide)
 
       nodes
         .append("circle")
@@ -174,11 +170,11 @@
         .attr("stroke", "black")
         .attr("fill", (d) => {
           defs
-            .append("pattern")
+          .append("pattern")
             .attr("id", d.data.id)
             .attr('height', '1')
             .attr('width', '1')
-            .append("image")
+          .append("image")
             .attr("xlink:href", d.data.isUnion ? "heart.png" : (d.data.image ?? "fallback.png"))
             .attr("width", nodeRadius * 2)
             .attr("height", nodeRadius * 2)
@@ -186,7 +182,21 @@
             .attr("y", 0);
 
           return `url(#${d.data.id})`
-        })
+        });
+
+      // --------------------------------
+      // Interactivity
+      // --------------------------------
+        nodes
+          .on('mouseover', (event, d) => {
+            if (!d.data.isUnion) {
+              tip.show(event, d);
+            }
+          })
+          .on('mouseout', tip.hide)
+          .on('click', (_, d) => {
+          });
+
     })();
   </script>
 </body>
