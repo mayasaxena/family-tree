@@ -44,7 +44,7 @@
           parents: (record.fields.Parents ?? []).sort(),
           children: (record.fields.Children ?? []).sort(),
           name: record.fields.Name,
-          image: (record.fields.Photo ?? [ {"url": "https://via.placeholder.com/150"} ])[0].url,
+          image: 'Photo' in record.fields ? record.fields.Photo[0].url : null,
           birthDate: record.fields["Birth Date"],
           gender: record.fields.Gender,
           languages: record.fields.Languages
@@ -62,15 +62,15 @@
       const allLinks = data.reduce((strat, record) => {
         if (record.parents.length > 0) {
           strat.push({
-            id: record.parents.join(),
+            id: record.parents.join(""),
             parentIds: record.parents,
-            name: record.name,
-            image: record.image,
+            name: null,
+            image: null,
             isUnion: true
           })
           strat.push({
             id: record.id,
-            parentIds: [record.parents.join()],
+            parentIds: [record.parents.join("")],
             name: record.name,
             image: record.image
           })
@@ -100,15 +100,13 @@
         L${d.x},${s.y}
         L${d.x},${d.y}
         `
+
+        // const path = "M" + s.x + "," + s.y +
+        // " C " + s.x + "," + (s.y + d.y) / 2 + " " +
+        // d.x +"," + (s.y + d.y) / 2 + " " +
+        // d.x + "," + d.y
+
         return path
-
-
-          // path = `M ${s.x} ${s.y}
-          //   C ${(s.x + d.x) / 2} ${s.y},
-          //     ${(s.x + d.x) / 2} ${d.y},
-          //     ${d.x} ${d.y}`
-
-          // return path
       }
 
       function zoomed({ transform }) {
@@ -134,9 +132,9 @@
           return linkPath(d.source, d.target)
         })
         .attr("fill", "none")
-        .attr("stroke-width", 3)
+        .attr("stroke-width", 4)
+        .attr("stroke-linejoin", "round")
         .attr("stroke", "black");
-
       // Plot node circles
 
       // Select nodes
@@ -151,7 +149,9 @@
 
       nodes
         .append("circle")
-        .attr("r", (d) => d.data.isUnion ? 0 : nodeRadius)
+        .attr("r", nodeRadius)
+        .attr("stroke-width", (d) => d.data.isUnion ? 0 : 4)
+        .attr("stroke", "black")
         .attr("fill", (d) => {
           defs
             .append("pattern")
@@ -159,7 +159,7 @@
             .attr('height', '1')
             .attr('width', '1')
             .append("image")
-            .attr("xlink:href", d.data.image)
+            .attr("xlink:href", d.data.isUnion ? "heart.png" : (d.data.image ?? "fallback.png"))
             .attr("width", nodeRadius * 2)
             .attr("height", nodeRadius * 2)
             .attr("x", 0)
