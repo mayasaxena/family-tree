@@ -2,6 +2,8 @@
 <html>
 <head>
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://unpkg.com/d3-v6-tip@1.0.6/build/d3-v6-tip.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/bumbeishvili/d3-tip-for-v6@4/d3-tip.min.css">
   <script src="https://unpkg.com/d3-dag@0.8.0"></script>
 
   <style>
@@ -24,7 +26,6 @@
 <body>
   <svg></svg>
   <script>
-
     (async () => {
       // fetch data and render
       const resp = await fetch(
@@ -94,6 +95,18 @@
       // This code only handles rendering
       // --------------------------------
 
+      var tip = d3.tip()
+        .attr('class', 'd3-tip')
+        .direction('s')
+        .offset([10, 0])
+        .html((_, d) => {
+            if (d.data.isUnion) return;
+            var content = `
+              <span style='margin-left: 2.5px;'><b>` + d.data.name + `</b></span><br>
+            `
+            return content.replace(new RegExp("null", "g"), "?")
+        });
+
       function linkPath(s, d) {
         path = `
         M${s.x},${s.y}
@@ -118,7 +131,8 @@
       svgSelection
       .attr("viewBox", [0, 0, width, height]
       .join(" "))
-      .call(d3.zoom().on("zoom", zoomed));
+      .call(d3.zoom().on("zoom", zoomed))
+      .call(tip)
       const defs = svgSelection.append("defs");
 
       // Plot edges
@@ -145,7 +159,13 @@
         .data(dag.descendants())
         .enter()
         .append("g")
-        .attr("transform", ({ x, y }) => `translate(${x}, ${y})`);
+        .attr("transform", ({ x, y }) => `translate(${x}, ${y})`)
+        .on('mouseover', (event, d) => {
+          if (!d.data.isUnion) {
+            tip.show(event, d);
+          }
+        })
+        .on('mouseout', tip.hide)
 
       nodes
         .append("circle")
@@ -167,15 +187,6 @@
 
           return `url(#${d.data.id})`
         })
-
-      // Add text to nodes
-      // nodes
-        // .append("text")
-        // .text((d) => d.data.name)
-        // .attr("font-family", "sans-serif")
-        // .attr("text-anchor", "middle")
-        // .attr("alignment-baseline", "middle")
-        // .attr("fill", "white");
     })();
   </script>
 </body>
