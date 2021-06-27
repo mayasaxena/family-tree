@@ -48,7 +48,7 @@ function relationship(prev, source, dest, data) {
 
   if (sourceData.parents.includes(dest)) {
     if (isParent(prev) || isSpouse(prev)) {
-      console.log('age ref changed from ' + ageRefData.name + ' to parent ' + sourceData.name)
+      // console.log('age ref changed from ' + ageRefData.name + ' to parent ' + sourceData.name)
       ageRefData = sourceData
     }
 

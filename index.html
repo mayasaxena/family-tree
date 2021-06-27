@@ -71,22 +71,44 @@
         let seen = new Set();
         return a.filter(item => {
           let k = item.id;
-          return seen.has(k) ? false : seen.add(k);
+        return seen.has(k) ? false : seen.add(k);
         });
+      }
+
+      function merge(objects) {
+        return objects.reduce((merged, object) => {
+          var seen = merged[object.id]
+          if(seen) {
+            if(seen.isUnion) {
+              merged[object.id] = {
+                id: object.id,
+                parentIds: seen.parentIds,
+                name: null,
+                image: null,
+                isUnion: true,
+                hasChildren: seen.hasChildren || object.hasChildren
+              }
+            }
+          } else {
+            merged[object.id] = object
+          }
+          return merged
+        }, {}) 
       }
 
       const allLinks = data.reduce((strat, record) => {
         if (record.parents.length > 0) {
-          // Parent to person
+          // Parents to union
           strat.push({
             id: record.parents.join(""),
             parentIds: record.parents,
             name: null,
             image: null,
-            isUnion: true
+            isUnion: true,
+            hasChildren: record.children.length > 0
           })
 
-          // Person to parents
+          // Union to person
           strat.push({
             id: record.id,
             parentIds: [record.parents.join("")],
@@ -100,7 +122,8 @@
             parentIds: union,
             name: null,
             image: null,
-            isUnion: true
+            isUnion: true,
+            hasChildren: record.children.length > 0
           })
           strat.push({ id: record.id, name: record.name, image: record.image })
         } else {
@@ -109,7 +132,7 @@
         return strat
       }, []);
 
-      strat = uniq(allLinks)
+      strat = uniq(Object.values(merge(allLinks)))
 
       var adjList = data.reduce((adjList, record) => {
         adjList[record.id] = record.parents.concat(record.children).concat(record.partners ?? [])
@@ -148,11 +171,13 @@
           return content.replace(new RegExp("null", "g"), "")
         });
 
+      var unionMidpoints = []
+
       function linkPath(s, d) {
         path = `
-        M${s.x},${s.y}
-        L${d.x},${s.y}
-        L${d.x},${d.y}
+          M${s.x},${s.y}
+          L${d.x},${s.y}
+          L${d.x},${d.y}
         `
 
         // const path = "M" + s.x + "," + s.y +
@@ -163,9 +188,18 @@
         return path
       }
 
+      function unionPath(s, d) {
+        path = `
+          M${s.x},${s.y}
+          L${d.x},${s.y}
+        `
+        return path
+      }
+
       function zoomed({ transform }) {
         paths.attr("transform", transform);
         d3.select(".nodes").attr("transform", transform);
+         d3.select(".union-nodes").attr("transform", transform)
       }
 
       const svgSelection = d3.select("svg");
@@ -184,13 +218,22 @@
         .data(dag.links())
         .enter()
         .append("path")
-        .attr("d", (d) => {     
-          return linkPath(d.source, d.target)
+        .attr("d", (d) => {  
+          if (d.target.data.isUnion) {
+            unionMidpoints.push({ id: d.target.data.id, x: d.target.x, y: d.source.y })
+          }
+
+          if (d.target.data.isUnion && !d.target.data.hasChildren) {
+             return unionPath(d.source, d.target)
+          } else {
+            return linkPath(d.source, d.target)
+          }
         })
         .attr("fill", "none")
         .attr("stroke-width", 4)
         .attr("stroke-linejoin", "round")
         .attr("stroke", "black");
+    
       // Plot node circles
 
       // Select nodes
@@ -215,13 +258,42 @@
             .attr('height', '1')
             .attr('width', '1')
           .append("image")
-            .attr("xlink:href", d.data.isUnion ? "heart.png" : (d.data.image ?? "fallback.png"))
+            .attr("xlink:href", d.data.isUnion ? null : (d.data.image ?? "fallback.png"))
             .attr("width", nodeRadius * 2)
             .attr("height", nodeRadius * 2)
             .attr("x", 0)
             .attr("y", 0);
 
           return `url(#${d.data.id})`
+        });
+
+      const heartRadius = 40
+      const unionNodes = svgSelection
+        .append("g")
+        .attr("class", "union-nodes")
+        .selectAll("g")
+        .data(uniq(unionMidpoints))
+        .enter()
+        .append("g")
+        .attr("transform", ({ x, y }) => `translate(${x}, ${y})`)
+
+      unionNodes  
+        .append("circle")
+        .attr("r", heartRadius)
+        .attr("fill", (d) => {
+          defs
+            .append("pattern")
+            .attr("id", d.id+"heart")
+            .attr('height', '1')
+            .attr('width', '1')
+            .append("image")
+            .attr("xlink:href", "heart.svg")
+            .attr("width", heartRadius * 2)
+            .attr("height", heartRadius * 2)
+            .attr("x", 0)
+            .attr("y", 0);
+
+          return `url(#${d.id}heart)`
         });
 
       // --------------------------------
@@ -237,12 +309,12 @@
 
         d3.selectAll("circle")
           .on('mouseover', (event, d) => {
-            if (!d.data.isUnion) {
+            if (d.data && !d.data.isUnion) {
               tip.show(event, d, selectedSource);
             }
           })
           .on('mouseout', tip.hide)
-          .on('dblclick', function (_, d) {
+          .on('click', function (_, d) {
             if (d.data.isUnion) { return }
             selectedSource = d.data.id
             relationships = getRelationships(data, adjList, d.data.id)
