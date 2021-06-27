@@ -1,30 +1,10 @@
-function getRelationships(data, source, unions) {  
-  unions.forEach(union => {
-    union.parentIds.forEach(parentId => {
-      const partners = union.parentIds.filter(element => element != parentId)
-      const parent = data.find(element => element.id == parentId)
-      parent.partners = parent.partners ? parent.partners.concat(partners) : partners
-    })
-  });
-  
-  var adjList = data.reduce((adjList, record) => {
-    adjList[record.id] = record.parents.concat(record.children).concat(record.partners ?? [])
-    return adjList
-  }, {})
-
-  return generateRelationships(adjList, source, data)
-}
-
-var originData;
 var ageRefData;
 
-function generateRelationships(adjList, start, data) {
-  // array to store level of each node
+function getRelationships(data, adjList, start) {  
   var level = {}
   var marked = {}
 
-  originData = data.find(element => element.id == start)
-  ageRefData = originData
+  ageRefData = data.find(element => element.id == start)
 
   var queue = []
   queue.push(start)
@@ -32,14 +12,13 @@ function generateRelationships(adjList, start, data) {
   marked[start] = true
 
   while (queue.length > 0) {
-    var source = queue[0]
-    queue.shift()
+    var source = queue.pop()
 
     adjList[source].forEach(destination => {
       if (!marked[destination]) {
         queue.push(destination)
-        result = relationship(source, destination, data)
         const last = level[source]
+        result = relationship(last, source, destination, data)
         level[destination] = last + result.rel + (isParent(last) ? result.ageDiff ?? "" : "")
         marked[destination] = true
       }
@@ -56,7 +35,11 @@ function isParent(prev) {
   return strEndsWith(prev, "father") || strEndsWith(prev, 'mother')
 }
 
-function relationship(source, dest, data) {
+function isSpouse (prev) {
+  return strEndsWith(prev, 'husband') || strEndsWith(prev, 'wife')
+}
+
+function relationship(prev, source, dest, data) {
   var relationship = ""
   var ageDiff = null
   
@@ -64,10 +47,11 @@ function relationship(source, dest, data) {
   const destData = data.find(element => element.id == dest)
 
   if (sourceData.parents.includes(dest)) {
-    if (destData.children.includes(originData.id)) {
-      console.log('age ref changed from ' + ageRefData.name + ' to ' + destData.name)
-      ageRefData = destData
+    if (isParent(prev) || isSpouse(prev)) {
+      console.log('age ref changed from ' + ageRefData.name + ' to parent ' + sourceData.name)
+      ageRefData = sourceData
     }
+
     if (destData.gender == "Male") {
       relationship = "father"
     } else if (destData.gender == 'Female') {
@@ -87,10 +71,6 @@ function relationship(source, dest, data) {
     ageDiff = ageRefData.birthDate > destData.birthDate ? '-older' : '-younger'
 
   } else if (sourceData.partners.includes(dest)) {
-    if (originData.partners.includes(destData.id)) {
-      console.log('age ref changed from ' + ageRefData.name + ' to ' + destData.name)
-      ageRefData = destData
-    }
     if (destData.gender == 'Male') {
       relationship = 'husband'
     } else if (destData.gender == 'Female') {
@@ -108,7 +88,6 @@ function relationship(source, dest, data) {
 function relationName (language, relationship) {
   var components = relationship.split('-')
   var tree = relations[language]
-  console.log(relationship);
 
   while (components.length >= 0) {
     var component = ""
@@ -116,6 +95,7 @@ function relationName (language, relationship) {
       var component = components[0]
       components.shift()
     }
+
     if (typeof tree[component] == "string") {
       return tree[component]
     } else {

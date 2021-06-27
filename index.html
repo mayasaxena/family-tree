@@ -26,11 +26,8 @@
     }
 
     .source {
-      stroke: blue !important;
-    }
-
-    .destination {
-      stroke: red !important;
+      stroke-width: 30px !important;
+      stroke-dasharray: 6, 15; 
     }
 
     .d3-tip {
@@ -114,8 +111,11 @@
 
       strat = uniq(allLinks)
 
-      const unions = strat.filter((element) => element.isUnion )
-      
+      var adjList = data.reduce((adjList, record) => {
+        adjList[record.id] = record.parents.concat(record.children).concat(record.partners ?? [])
+        return adjList
+      }, {})
+
       const dag = d3.dagStratify()(strat);
       const nodeRadius = 80;
       const layout = d3
@@ -140,6 +140,7 @@
          
           if (relationships) {
             const relationship = relationships[d.data.id]
+            console.log(relationship);
             relation = relationName("Hindi", relationship)
             content += `<span style='margin-left: 2.5px;'><b> ${relation} </b></span><br>`
           }
@@ -244,7 +245,7 @@
           .on('dblclick', function (_, d) {
             if (d.data.isUnion) { return }
             selectedSource = d.data.id
-            relationships = getRelationships(data, d.data.id, unions)
+            relationships = getRelationships(data, adjList, d.data.id)
             singleSelectClassOn(this, "source")
           })
 
