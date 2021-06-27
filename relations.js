@@ -1,11 +1,66 @@
+patgrandchildren = {
+  "daughter" : "poti (poe-tee)",
+  "son" : "pota (poe-tah)",
+}
+
+matgrandchildren = {
+  "daughter" : "natin (nah-tin), navasi (nuh-vah-see)",
+  "son" : "nati (nah-tee), navasa (nuh-vah-saw)",
+}
+
 sisterchildren = {
-  "daughter" : "bhanji",
-  "son" : "bhanja",
+  "daughter" : {
+    "": "bhanji",
+    ...patgrandchildren
+  },
+  "son" : {
+    "": "bhanja",
+    ...patgrandchildren
+  }
 }
 
 brotherchildren = {
-  "daughter" : "bhatiji",
-  "son" : "bhatija",
+  "daughter" : {
+    "": "bhatiji",
+    ...matgrandchildren
+  },
+  "son" : {
+    "" : "bhatija",
+    ...matgrandchildren
+  }
+}
+
+fathersister = {
+  "older" : {
+    "": "(badi) bua",
+    "husband" : "(bade) phupa, phupaji",
+  },
+  "younger" : {
+    "": "bua",
+    "husband" : "phupa, phupaji",
+  },
+  "": "bua",
+  "husband" : "phupa, phupaji",
+}
+
+fatherbrother = {
+  "younger" : {
+    "": "chacha",
+    "wife" : "chachi",
+    "husband" : ""
+  },
+  "older" : {
+      "": "tau, tauji",
+    "wife" : "tai, taima",
+    "husband" : "",
+  }
+}
+
+husbandsister = {
+  "": "nanand",
+  "husband" : "nandoi",
+  "wife" : "",
+  ...sisterchildren
 }
 
 siblings = {
@@ -18,7 +73,7 @@ siblings = {
     },
     "younger" : {
       "": "behen",
-      "wife" : "",
+      "wife" : "bhabhi",
       "husband" : "behnoi/bhai",
       ...sisterchildren
     },
@@ -39,12 +94,21 @@ siblings = {
   }
 }
 
-wifesiblings = {
-  "daughter" : {
-    "": "saali",
+wifesister = {
+   "": "saali",
     "husband" : "sadhu",
     "wife" : "",
     ...sisterchildren
+}
+
+wifesiblings = {
+  "daughter" : {
+    "younger": {
+      ...wifesister,
+    },
+    "older": {
+      ...wifesister
+    }
   },
   "son" : {
     "older" : {
@@ -64,10 +128,12 @@ wifesiblings = {
 
 husbandsiblings = {
   "daughter" : {
-    "": "nanand",
-    "husband" : "nandoi",
-    "wife" : "",
-    ...sisterchildren
+    "younger" : {
+      ...husbandsister
+    }, 
+    "older" : {
+      ...husbandsister
+    }
   },
   "son" : {
     "older" : {
@@ -92,28 +158,85 @@ mothersiblings = {
     "wife" : ""
   },
   "son" : {
-    "": "mama",
-    "wife" : "mami",
-    "husband" : "",
+    "older" : {
+      "": "(bade) mama",
+      "wife" : "(bade) mami, mai",
+      "husband" : "",
+    },
+    "younger" : {
+      "": "mama",
+      "wife" : "mami, mai",
+      "husband" : "",
+    },
   },
 }
 
 fathersiblings = {
   "daughter" : {
-    "": "bua",
-    "husband" : "phupa, phupaji",
+    ...fathersister
   },
   "son" : {
-    "younger" : {
-      "": "chacha",
-      "wife" : "chachi",
-      "husband" : ""
-    },
-    "older" : {
-        "": "tau, tauji",
-      "wife" : "tai, taima",
-      "husband" : "",
-    },
+    ...fatherbrother
+  }
+}
+
+matgrandmother = {
+  "mother" : {
+    "": "nani (nah-nee)",
+    "husband": "nana (nah-nah)",
+    ...mothersiblings
+  }
+}
+
+matgrandfather = {
+  "father" : {
+    "": "nana (nah-nah)",
+    "wife": "nani (nah-nee)",
+    ...mothersiblings
+  }
+}
+
+patgrandfather = {
+  "father" : {
+    "": "dada (dah-dah), dadaji",
+    "wife": "dadi",
+    ...fathersiblings
+  },
+}
+
+patgreats = {
+  "son" : {
+    "older" : patgrandfather.father,
+    "younger" : patgrandfather.father
+  },
+  "daughter" : {
+    "": "dadi (dah-dee)",
+    ...fathersiblings
+  }
+}
+
+patgrandmother = {
+  "mother" : {
+    "": "dadi (dah-dee), dadima",
+    ...fathersiblings,
+  }
+}
+
+mother = {
+  "mother" : {
+    "": "ma, mummy",
+    ...siblings,
+    ...matgrandmother,
+    ...matgrandfather,
+  }
+}
+
+father = {
+  "father" : {
+    "": "papa",
+    ...siblings,
+    ...patgrandmother,
+    ...patgrandfather,
   }
 }
 
@@ -125,11 +248,15 @@ relations = {
         "" : "bibi (bee-bee), patni (putt-knee)",
         "mother" : {
           "": "saas (sahss)",
-          ...wifesiblings
+          ...wifesiblings,
+          ...matgrandmother,
+          ...matgrandfather
         },
         "father" : {
           "": "sasur (suss-oor)",
-          ...wifesiblings
+          ...wifesiblings,
+          ...patgrandmother,
+          ...patgrandfather,
         },
       },
 
@@ -137,11 +264,15 @@ relations = {
         "" : "miah (mee-ah), pati (puh-tee)",
         "mother" : {
           "": "saas (sahss)",
-          ...husbandsiblings
+          ...husbandsiblings,
+          ...matgrandmother,
+          ...matgrandfather
         },
         "father" : {
           "": "sasur (suss-oor)",
-          ...husbandsiblings
+          ...husbandsiblings,
+          ...patgrandfather,
+          ...patgrandmother
         },
       },
   
@@ -159,8 +290,7 @@ relations = {
         "" : "beti (bay-tee)",
         "wife" : "bahu (buh-who)",
         "husband" : "damad (dah-mahd), jamai (juh-mah-ee)",
-        "daughter" : "natin (nah-tin), navasi (nuh-vah-see)",
-        "son" : "nati (nah-tee), navasa (nuh-vah-saw)",
+        ...matgrandchildren,
         "mother" : "beti ki maa",
         "father" : "beti ke baap",
       },
@@ -169,36 +299,29 @@ relations = {
         "" : "beta (bay-tah)",
         "wife" : "bahu (buh-who)",
         "husband" : "damad (dah-mad), jamai (juh-mah-ee)",
-        "daughter" : "poti (poe-tee)",
-        "son" : "pota (poe-tah)",
+        ...patgrandchildren,
         "mother" : "bete ki maa",
         "father" : "bete ke baap",
       },
   
-      "mother" : {
-        "": "ma, mummy",
-        ...siblings,
-        "mother" : {
-          "": "nani (nah-nee)",
-          ...mothersiblings
-        },
-        "father" : {
-          "": "nana (nah-nah)",
-          ...mothersiblings
-        },
-      },
+      ...mother,
           
       "father" : {
         "": "papa",
         ...siblings,
         "mother" : {
           "": "dadi (dah-dee), dadima",
-          ...fathersiblings
+          ...fathersiblings,
+          "mother" : {
+            "": "pardadi",
+            ...patgreats
+          },
+          "father" : {
+            "": "pardada",
+            ...patgreats
+          }
         },
-        "father" : {
-          "": "dada (dah-dah), dadaji",
-          ...fathersiblings
-        },
+        ...patgrandfather
       }
     }
   }

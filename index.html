@@ -43,13 +43,15 @@
     (async () => {
       // fetch data and render
       const resp = await fetch(
-        "https://api.airtable.com/v0/appoOuybfOmmEd4rF/People?sort%5B0%5D%5Bfield%5D=Ordering&sort%5B0%5D%5Bdirection%5D=asc", 
+        "https://flairtable.com/api/v1/appoOuybfOmmEd4rF/People?sort%5B0%5D%5Bfield%5D=Ordering&sort%5B0%5D%5Bdirection%5D=asc", 
         {
           headers: {
-            Authorization: "Bearer keythMZv756Dup760" 
+            Authorization: "Bearer Gkp3gcDURXMxyFXK6D2HaEAO2Fw1" 
           }
         }
       );
+
+      console.log(relations);
 
       const records = await resp.json();
 
@@ -98,41 +100,34 @@
 
       const allLinks = data.reduce((strat, record) => {
         if (record.parents.length > 0) {
-          // Parents to union
           strat.push({
-            id: record.parents.join(""),
+            id: "u" + record.parents.join(""),
             parentIds: record.parents,
-            name: null,
-            image: null,
             isUnion: true,
-            hasChildren: record.children.length > 0
-          })
-
-          // Union to person
-          strat.push({
-            id: record.id,
-            parentIds: [record.parents.join("")],
-            name: record.name,
-            image: record.image
+            hasChildren: true
           })
         } else if (record.partners.length > 0) {
           const union = record.partners.concat(record.id).sort()
           strat.push({
-            id: union.join(""),
+            id: "u" + union.join(""),
             parentIds: union,
-            name: null,
-            image: null,
             isUnion: true,
             hasChildren: record.children.length > 0
           })
-          strat.push({ id: record.id, name: record.name, image: record.image })
-        } else {
-          strat.push({ id: record.id, name: record.name, image: record.image })
         }
+
+        strat.push({ 
+          id: record.id, 
+          parentIds: record.parents.length > 0 ? ["u" + record.parents.join("")] : [],
+          name: record.name, 
+          image: record.image 
+        })
         return strat
       }, []);
 
-      strat = uniq(Object.values(merge(allLinks)))
+      const merged = merge(allLinks)
+
+      strat = uniq(Object.values(merged))
 
       var adjList = data.reduce((adjList, record) => {
         adjList[record.id] = record.parents.concat(record.children).concat(record.partners ?? [])
@@ -157,14 +152,17 @@
         .offset([10, 0])
         .html((_, d) => {
           var relation = null
+          console.log(d.data.id);
           if (d.data.isUnion) return;
           
           var content = `<span style='margin-left: 2.5px;'><b> ${d.data.name} </b></span><br>`
          
           if (relationships) {
             const relationship = relationships[d.data.id]
-            console.log(relationship);
-            relation = relationName("Hindi", relationship)
+            const relative = data.find(person => person.id == d.data.id)
+            const you = data.find(person => person.id == selectedSource)
+            console.log(relationship.rel);
+            relation = relationName(relations["Hindi"], relationship, relative, you)
             content += `<span style='margin-left: 2.5px;'><b> ${relation} </b></span><br>`
           }
 
@@ -173,17 +171,28 @@
 
       var unionMidpoints = []
 
+      const line = d3
+        .line()
+        .curve(d3.curveCatmullRom)
+        .x((d) => d.x)
+        .y((d) => d.y);
+
+
       function linkPath(s, d) {
         path = `
-          M${s.x},${s.y}
-          L${d.x},${s.y}
+        M${s.x},${s.y}
+        L${d.x},${s.y}
           L${d.x},${d.y}
         `
-
         // const path = "M" + s.x + "," + s.y +
         // " C " + s.x + "," + (s.y + d.y) / 2 + " " +
         // d.x +"," + (s.y + d.y) / 2 + " " +
         // d.x + "," + d.y
+
+        // path = `M ${s.x} ${s.y}
+        //     C ${(s.x + d.x) / 2} ${s.y},
+        //       ${(s.x + d.x) / 2} ${d.y},
+        //       ${d.x} ${d.y}`
 
         return path
       }
@@ -219,7 +228,7 @@
         .enter()
         .append("path")
         .attr("d", (d) => {  
-          if (d.target.data.isUnion) {
+          if (d.target.data.isUnion && d.target.data.parentIds.length > 1) {
             unionMidpoints.push({ id: d.target.data.id, x: d.target.x, y: d.source.y })
           }
 
@@ -265,35 +274,6 @@
             .attr("y", 0);
 
           return `url(#${d.data.id})`
-        });
-
-      const heartRadius = 40
-      const unionNodes = svgSelection
-        .append("g")
-        .attr("class", "union-nodes")
-        .selectAll("g")
-        .data(uniq(unionMidpoints))
-        .enter()
-        .append("g")
-        .attr("transform", ({ x, y }) => `translate(${x}, ${y})`)
-
-      unionNodes  
-        .append("circle")
-        .attr("r", heartRadius)
-        .attr("fill", (d) => {
-          defs
-            .append("pattern")
-            .attr("id", d.id+"heart")
-            .attr('height', '1')
-            .attr('width', '1')
-            .append("image")
-            .attr("xlink:href", "heart.svg")
-            .attr("width", heartRadius * 2)
-            .attr("height", heartRadius * 2)
-            .attr("x", 0)
-            .attr("y", 0);
-
-          return `url(#${d.id}heart)`
         });
 
       // --------------------------------
