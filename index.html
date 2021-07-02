@@ -51,7 +51,7 @@
         }
       );
 
-      console.log(relations);
+      console.log(relationsGraph);
 
       const records = await resp.json();
 
@@ -68,6 +68,11 @@
           languages: record.fields.Languages
         })
       );
+
+      const dataByID = data.reduce((dataByID, record) => {
+        dataByID[record.id] = record
+        return dataByID
+      }, {});
 
       function uniq(a) {
         let seen = new Set();
@@ -130,7 +135,7 @@
       strat = uniq(Object.values(merged))
 
       var adjList = data.reduce((adjList, record) => {
-        adjList[record.id] = record.parents.concat(record.children).concat(record.partners ?? [])
+        adjList[record.id] = record.partners.concat(record.parents).concat(record.children)
         return adjList
       }, {})
 
@@ -156,13 +161,12 @@
           if (d.data.isUnion) return;
           
           var content = `<span style='margin-left: 2.5px;'><b> ${d.data.name} </b></span><br>`
+
+          const selectedRelationships = relationships[selectedID]
          
-          if (relationships) {
-            const relationship = relationships[d.data.id]
-            const relative = data.find(person => person.id == d.data.id)
-            const you = data.find(person => person.id == selectedSource)
-            console.log(relationship.rel);
-            relation = relationName(relations["Hindi"], relationship, relative, you)
+          if (selectedRelationships) {
+            const relationship = selectedRelationships[d.data.id]
+            relation = def[relationship.titleInfo.key] + relationship.titleInfo.modifier ?? ""
             content += `<span style='margin-left: 2.5px;'><b> ${relation} </b></span><br>`
           }
 
@@ -279,8 +283,8 @@
       // --------------------------------
       // Interactivity
       // --------------------------------
-        var selectedSource = null
-        var relationships = null
+        var selectedID = null
+        var relationships = {}
 
         function singleSelectClassOn(_this, node) {
           d3.selectAll(`.${node}`).classed(node, false);
@@ -290,14 +294,16 @@
         d3.selectAll("circle")
           .on('mouseover', (event, d) => {
             if (d.data && !d.data.isUnion) {
-              tip.show(event, d, selectedSource);
+              tip.show(event, d, selectedID);
             }
           })
           .on('mouseout', tip.hide)
           .on('click', function (_, d) {
             if (d.data.isUnion) { return }
-            selectedSource = d.data.id
-            relationships = getRelationships(data, adjList, d.data.id)
+            selectedID = d.data.id
+            if (!relationships[d.data.id]) {
+              relationships[d.data.id] = getRelationships(dataByID, adjList, d.data.id)
+            }
             singleSelectClassOn(this, "source")
           })
 

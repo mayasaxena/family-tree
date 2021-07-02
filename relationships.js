@@ -1,31 +1,44 @@
-function getRelationships(data, adjList, start) {  
-  var level = {}
+function getRelationships(dataByID, adjList, startID) {
+  var relationships = {}
   var marked = {}
 
   var stack = []
-  stack.push(start)
-  const you = data.find(element => element.id == start)
-  level[start] = { rel: "you", genGap: 0, ageRefStack: [you.birthDate] }
-  marked[start] = true
+  stack.push(startID)
+  const startData = dataByID[startID]
+
+  relationships[startID] = {
+    relationship: "your",
+    curr: "your",
+    titleInfo: {
+      key: "your",
+      modifier: null
+    },
+    genGap: 0, 
+    ageRefStack: [startData.birthDate] 
+  }
+  marked[startID] = true
 
   while (stack.length > 0) {
-    var source = stack.pop()
-    const last = level[source]
+    var sourceID = stack.pop()
+    const source = relationships[sourceID]
 
-    adjList[source].forEach(neighbor => {
-      if (!marked[neighbor]) {
-        stack.push(neighbor)
-        result = relationship(last, source, neighbor, data)
-        level[neighbor] = {
-          rel: last.rel + result.rel + (isParent(last.rel) ? result.ageDiff ?? '' : ''),
-          genGap: last.genGap + result.genGap,
-          ageRefStack: result.ageRefStack
+    adjList[sourceID].forEach(destID => {
+      if (!marked[destID]) {
+        stack.push(destID)
+        destination = relationship(source, sourceID, destID, dataByID)
+        ageModifier = isParent(source.relationship) && destination.ageDiff ? `-${destination.ageDiff}` : ""
+        relationships[destID] = {
+          relationship: `${source.relationship}-${destination.relationship}${ageModifier}`,
+          curr: source.relationship,
+          titleInfo: getTitleInfo(source.titleInfo.key, destination.relationship, destination.ageDiff),
+          genGap: source.genGap + destination.genGap,
+          ageRefStack: destination.ageRefStack
         }
-        marked[neighbor] = true
+        marked[destID] = true
       }
     });
   }
-  return level
+  return relationships
 }
 
 function strEndsWith(str, suffix) {
@@ -36,21 +49,17 @@ function isParent(prev) {
   return strEndsWith(prev, "father") || strEndsWith(prev, 'mother')
 }
 
-function isSpouse (prev) {
-  return strEndsWith(prev, 'husband') || strEndsWith(prev, 'wife')
-}
-
-function relationship(last, source, dest, data) {
-  var relationship = ""
+function relationship(source, sourceID, destID, dataByID) {
+  var relationship = null
   var ageDiff = null
-  var genGap = 0
+  var genGap = null
   
-  const sourceData = data.find(element => element.id == source)
-  const destData = data.find(element => element.id == dest)
+  const sourceData = dataByID[sourceID]
+  const destData = dataByID[destID]
 
-  var ageRefStack = last.ageRefStack.slice()
+  var ageRefStack = source.ageRefStack.slice()
 
-  if (sourceData.parents.includes(dest)) {
+  if (sourceData.parents.includes(destID)) {
     ageRefStack.push(destData.birthDate)
     genGap = -1
     
@@ -61,8 +70,7 @@ function relationship(last, source, dest, data) {
     } else {
       relationship = "parent"
     }
-    // console.log(last.rel, relationship, dest, ageRefStack)
-  } else if (sourceData.children.includes(dest)) {
+  } else if (sourceData.children.includes(destID)) {
     ageRefStack.pop()
     genGap = 1
     
@@ -75,10 +83,9 @@ function relationship(last, source, dest, data) {
     }
 
     const ageRef = ageRefStack[ageRefStack.length - 1]
-    // console.log("comparing ", ageRef, destData.birthDate)
-    ageDiff = ageRef > destData.birthDate ? '-older' : '-younger'
+    ageDiff = ageRef > destData.birthDate ? 'older' : 'younger'
 
-  } else if (sourceData.partners.includes(dest)) {
+  } else if (sourceData.partners.includes(destID)) {
     ageRefStack.push(destData.birthDate)
 
     if (destData.gender == 'Male') {
@@ -88,37 +95,30 @@ function relationship(last, source, dest, data) {
     } else {
       relationship = 'spouse'
     }
-    // console.log(last.rel, relationship, dest, ageRefStack)
   } else {
     relationship = "?"
   }
 
-  return {rel: `-${relationship}`, ageDiff: ageDiff, genGap: genGap, ageRefStack: ageRefStack}
+  return {
+    relationship: relationship,
+    ageDiff: ageDiff, 
+    genGap: genGap, 
+    ageRefStack: ageRefStack
+  }
 }
 
-function relationName (tree, relationship, relative, you) {
-  var components = relationship.rel.split('-')
+function getTitleInfo(current, relation, ageDiff) {
+  var from = relationsGraph[current]
+  const to = from[relation]
+  var key = null
+  if (typeof to === 'object' && to !== null) {
+    key = to[ageDiff]
+  } else {
+    key = to
+  }
 
-  while (components.length >= 0) {
-    var component = ""
-    if (components.length > 0) {
-      var component = components[0]
-      components.shift()
-    }
-
-    if (tree[component] == undefined) {
-      if (relationship.genGap >= 0) {
-        var ageDiff = you.birthDate > relative.birthDate ? 'older' : 'younger'
-        var remaining = `${component}-${ageDiff}` + (components.length > 0 ? "-" + components.join("-") : "")
-        return relationName(siblings, {rel: remaining, genGap: relationship.genGap - 1 }, relative, you)
-      } else {
-        console.log("what???", component);
-        return relationship.genGap
-      }
-    } else if (typeof tree[component] == "string") {
-      return tree[component]
-    } else {
-      tree = tree[component]
-    }
+  return {
+    key: key ?? current,
+    modifier: key === null ? relation : null
   }
 }
