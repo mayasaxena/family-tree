@@ -1,11 +1,11 @@
 var brother = {
   "older": "brother_older", 
-  "younger": "brother_younger" 
+  "younger": "brother_younger"
 }
 
 var sister = {
   "older": "sister_older", 
-  "younger": "sister_younger" 
+  "younger": "sister_younger"
 }
 
 var maternal_uncle = {

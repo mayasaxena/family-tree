@@ -9,6 +9,7 @@
   <script src="https://unpkg.com/d3-dag@0.7.0"></script>
   <script src="relationships.js"></script>
   <script src="relations.js"></script>
+  <script src="step.js"></script>
 
   <style>
     html {
@@ -166,7 +167,7 @@
          
           if (selectedRelationships) {
             const relationship = selectedRelationships[d.data.id]
-            relation = def[relationship.titleInfo.key] + relationship.titleInfo.modifier ?? ""
+            relation = def[relationship.key] + (relationship.fallback ?? "")
             content += `<span style='margin-left: 2.5px;'><b> ${relation} </b></span><br>`
           }
 
