@@ -3,7 +3,7 @@ function renderDAG() {
       let params = new URLSearchParams(window.location.search.slice(1));
       let baseID = params.get('base-id')
       let apiKey = params.get('api-key')
-      let language = Languages.hindi
+      let language = params.get('language')
 
       // fetch data and render
       const resp = await fetch(`https://api.airtable.com/v0/${baseID}/People?api_key=${apiKey}&sort%5B0%5D%5Bfield%5D=Ordering&sort%5B0%5D%5Bdirection%5D=asc`);

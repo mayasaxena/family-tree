@@ -1,16 +1,5 @@
 const Languages = {
-  hindi: "hindi",
-  english: "english"
-}
-
-const languageGraphs = {
-  [Languages.hindi]: hindi_relations_graph,
-  [Languages.english] : english_relations_graph
-}
-
-const definitions = {
-  [Languages.hindi]: hindi_def,
-  [Languages.english] : english_def
+  hindi: "hindi"
 }
 
 function getMetadata(source, language) {

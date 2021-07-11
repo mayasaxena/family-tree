@@ -1,3 +1,13 @@
+const languageGraphs = {
+  [Languages.hindi]: hindi_relations_graph,
+  [Languages.english]: english_relations_graph
+}
+
+const definitions = {
+  [Languages.hindi]: hindi_def,
+  [Languages.english]: english_def
+}
+
 function getRelationships(dataByID, adjList, startID, language) {
   var nodes = {}
   var marked = {}
