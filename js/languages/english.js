@@ -1,4 +1,4 @@
-var engRelationsGraph = {
+const english_relations_graph = {
   "your" : {
     "father" : "father",
     "mother" : "mother",
@@ -193,7 +193,7 @@ var engRelationsGraph = {
   }, 
 }
 
-var def = {
+const english_def = {
   "your" : "you", 
   "mother" : "mom", 
   "father" : "dad", 

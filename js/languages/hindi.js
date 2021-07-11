@@ -1,34 +1,34 @@
-var brother = {
+const brother = {
   "older": "brother_older", 
   "younger": "brother_younger"
 }
 
-var sister = {
+const sister = {
   "older": "sister_older", 
   "younger": "sister_younger"
 }
 
-var maternal_uncle = {
+const maternal_uncle = {
   "older": "maternal_uncle_older",
   "younger": "maternal_uncle_younger"
 }
 
-var paternal_uncle = {
+const paternal_uncle = {
   "older": "paternal_uncle_older",
   "younger": "paternal_uncle_younger"
 }
 
-var husband_brother = {
+const husband_brother = {
   "older": "husband_brother_older",
   "younger": "husband_brother_younger"
 }
 
-var wife_brother = {
+const wife_brother = {
   "older": "wife_brother_older",
   "younger": "wife_brother_younger"
 }
 
-var relationsGraph = {
+const hindi_relations_graph = {
   "your" : {
     "father": "father",
     "mother": "mother",
@@ -527,7 +527,7 @@ var relationsGraph = {
   },
 }
 
-var def = {
+const hindi_def = {
   "your" : "you", 
   "mother" : "ma", 
   "father" : "papa", 
@@ -564,8 +564,8 @@ var def = {
   "husband_brother_older_wife" : "jethani", 
   "husband_sister" : "nanand", 
   "husband_sister_husband" : "nandoi", 
-  "husband_brother_younger" : "devar", 
-  "husband_brother_younger_wife" : "devarani", 
+  "husband_brother_younger" : "deconst", 
+  "husband_brother_younger_wife" : "deconstani", 
   "wife" : "patni", 
   "wife_brother_older" : "bhai saheb", 
   "wife_brother_younger" : "saala", 
