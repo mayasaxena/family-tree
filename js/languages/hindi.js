@@ -73,7 +73,7 @@ const hindi_relations_graph = {
     "father": "maternal_greatgrandfather",
     "mother": "maternal_greatgrandmother",
     "husband": null,
-    "wife": "mm",
+    "wife": "maternal_grandmother",
     "son": maternal_uncle,
     "daughter": "maternal_aunt"
   }, 
